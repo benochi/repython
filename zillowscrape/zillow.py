@@ -2,9 +2,10 @@ import tkinter as tk
 from tkinter import messagebox, filedialog
 from selenium import webdriver
 import json
+from bs4 import BeautifulSoup
+from datetime import datetime
 
 ZILLOW_BASE_URL = "https://www.zillow.com/"
-
 
 def scrape_zillow(city, state):
     city = city.strip().lower()
@@ -18,43 +19,35 @@ def scrape_zillow(city, state):
 
     return content
 
-
 def write_to_file(content, filename="zillow_data.html"):
     with open(filename, "w", encoding="utf-8") as f:
         f.write(content)
 
-
-def parse_html_to_json(filepath):
+def extract_search_results_from_html(filepath):
     with open(filepath, "r", encoding="utf-8") as file:
         content = file.read()
 
-    start_index = content.find('"searchResults":') + len('"searchResults":')
-    end_index = content.find('"totalResultCount"')
+    start_index = content.find('"searchResults":')
+    end_index = content.find('"totalResultCount"') + len('"totalResultCount"')
 
-    data_str = content[start_index:end_index].strip(", \n\r")
+    extracted_data = '{' + content[start_index:end_index] + ':1}}'
+    output_filename = datetime.now().strftime("%Y-%m-%d") + ".txt"
+    with open(output_filename, "w", encoding="utf-8") as f:
+        f.write(extracted_data)
+    
+    return output_filename
 
-    if not (data_str.startswith("{") and data_str.endswith("}")):
-        return None, f"Extracted data is not in expected format. Extracted data: {data_str[:100]}..."
-    try:
-        data = json.loads(data_str)
-        listings = data["listResults"]
-        # Extract specific information from each listing
-        extracted_data = []
-        for listing in listings:
-            address = listing["address"]
-            price = listing["price"]
-            image = listing["imgSrc"]
-            extracted_data.append({
-                "address": address,
-                "price": price,
-                "image": image
-            })
+def convert_txt_to_json(filepath):
+    with open(filepath, "r", encoding="utf-8") as file:
+        content = file.read()
+
+    json_data = json.loads(content)  # This will convert the .txt content to a Python dictionary
+
+    output_filename = filepath.replace(".txt", ".json")
+    with open(output_filename, "w", encoding="utf-8") as f:
+        json.dump(json_data, f, indent=4)
         
-        return extracted_data, None
-
-    except json.JSONDecodeError as e:
-        return None, f"Error while parsing the extracted data: {e}. Problematic data: {data_str[:100]}..."  
-
+    return output_filename
 
 def main():
     root = tk.Tk()
@@ -79,29 +72,36 @@ def main():
         except Exception as e:
             messagebox.showerror("Error", str(e))
 
-    def on_parse():
+    def on_extract():
         try:
             filepath = filedialog.askopenfilename(title="Select HTML File", filetypes=(("HTML files", "*.html"), ("All files", "*.*")))
             if not filepath:
                 return
-            extracted_data, error_msg = parse_html_to_json(filepath)
-            if error_msg:
-                messagebox.showerror("Error", error_msg)
+            txt_output = extract_search_results_from_html(filepath)
+            messagebox.showinfo("Info", f"Extracted data has been saved to '{txt_output}'")
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def on_convert():
+        try:
+            filepath = filedialog.askopenfilename(title="Select TXT File", filetypes=(("TXT files", "*.txt"), ("All files", "*.*")))
+            if not filepath:
                 return
-            with open("filtered.json", "w", encoding="utf-8") as out_file:
-                json.dump(extracted_data, out_file, indent=4)
-            messagebox.showinfo("Info", "Filtered data has been saved to 'filtered.json'")
+            json_output = convert_txt_to_json(filepath)
+            messagebox.showinfo("Info", f"TXT data has been converted and saved to '{json_output}'")
         except Exception as e:
             messagebox.showerror("Error", str(e))
 
     scrape_button = tk.Button(root, text="Scrape Zillow", command=on_scrape)
     scrape_button.pack(pady=20)
 
-    parse_button = tk.Button(root, text="Parse HTML to JSON", command=on_parse)
-    parse_button.pack(pady=20)
+    extract_button = tk.Button(root, text="Extract to TXT", command=on_extract)
+    extract_button.pack(pady=20)
+
+    convert_button = tk.Button(root, text="Convert TXT to JSON", command=on_convert)
+    convert_button.pack(pady=20)
 
     root.mainloop()
-
 
 if __name__ == "__main__":
     main()
