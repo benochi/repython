@@ -45,3 +45,43 @@ def convert_txt_to_json(filepath):
         json.dump(json_data, f, indent=4)
         
     return output_filename
+
+def sanitize_json_data(input_data):
+    # Check if the input data is a string (filepath) and load the file if needed
+    if isinstance(input_data, str):
+        with open(input_data, "r", encoding="utf-8") as file:
+            json_data = json.load(file)
+    else:
+        json_data = input_data
+
+    sanitized_list = []
+    
+    # Loop through each listing in the search results
+    try:
+        for listing in json_data['searchResults']['listResults']:
+            home_info = listing['hdpData']['homeInfo']
+            sanitized_info = {
+                "streetAddress": home_info.get("streetAddress", "N/A"),
+                "zipcode": home_info.get("zipcode", "N/A"),
+                "city": home_info.get("city", "N/A"),
+                "state": home_info.get("state", "N/A"),
+                "price": home_info.get("price", 0),  # Default to 0
+                "bathrooms": home_info.get("bathrooms", 0),  # Default to 0
+                "bedrooms": home_info.get("bedrooms", 0),  # Default to 0
+                "livingArea": home_info.get("livingArea", 0),  # Default to 0
+                "homeType": home_info.get("homeType", "N/A"),
+                "homeStatus": home_info.get("homeStatus", "N/A"),
+                "daysOnZillow": home_info.get("daysOnZillow", "N/A"),
+                "zestimate": home_info.get("zestimate", 0),  # Default to 0
+                "rentZestimate": home_info.get("rentZestimate", 0)  # Default to 0
+            }
+            sanitized_list.append(sanitized_info)
+    except Exception as e:
+        print(f"Error: {e}")
+    return {"listings": sanitized_list, "count": len(sanitized_list)}
+
+def save_sanitized_data_to_json(json_data):
+    sanitized_filename = "sanitized.json"
+    with open(sanitized_filename, "w", encoding="utf-8") as f:
+        json.dump(json_data, f, indent=4)
+    return sanitized_filename
