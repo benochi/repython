@@ -32,14 +32,15 @@ def calculate_ratio():
                     'City': listing['city'],
                     'State': listing['state'],
                     'Price': price,
+                    'Yearly Rent': yearly_rent,
+                    'Payback Ratio (in years)': ratio,
                     'Bedrooms': listing['bedrooms'],
                     'Bathrooms': listing['bathrooms'],
                     'Living Area': listing['livingArea'],
                     'Home Type': listing['homeType'],
                     'Home Status': listing['homeStatus'],
                     'Days On Zillow': listing['daysOnZillow'],
-                    'Yearly Rent': yearly_rent,
-                    'Payback Ratio (in years)': ratio
+                    
                 }
                 calculated_data.append(entry)
 
@@ -82,8 +83,8 @@ def main():
     label = tk.Label(root, text="Click the button to calculate the rent-to-cost ratio.")
     label.pack(pady=10)
 
-    columns = ["Street Address", "Zipcode", "City", "State", "Price", "Bedrooms", "Bathrooms", "Living Area", 
-               "Home Type", "Home Status", "Days On Zillow", "Yearly Rent", "Payback Ratio (in years)"]
+    columns = ["Street Address", "Zipcode", "City", "State", "Price","Yearly Rent", "Payback Ratio (in years)", "Bedrooms", "Bathrooms", "Living Area", 
+               "Home Type", "Home Status", "Days On Zillow", ]
 
     # Frame to hold the tree and scrollbar
     frame = ttk.Frame(root)
