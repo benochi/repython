@@ -17,7 +17,7 @@ def scrape_zillow(city, state, page_number=1):
         driver.get(current_url)
         print(f"Scraping from URL: {current_url}")  # Feedback
 
-        sleep(20)  # Wait for 10 seconds to manually handle CAPTCHA
+        sleep(30)  # Wait for 10 seconds to manually handle CAPTCHA
 
         content = driver.page_source
 
