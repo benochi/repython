@@ -76,7 +76,7 @@ def main():
     global columns  # Making columns global for easy access in other functions
 
     root = tk.Tk()
-    root.geometry("1200x600")  # Making the window larger
+    root.geometry("1500x800")  # Making the window larger
     root.title("Calculate Rent-to-Cost Ratio")
 
     label = tk.Label(root, text="Click the button to calculate the rent-to-cost ratio.")
@@ -89,16 +89,17 @@ def main():
     frame = ttk.Frame(root)
     frame.pack(pady=20, padx=20, fill=tk.BOTH, expand=True)
 
-    tree = ttk.Treeview(frame, columns=columns, show="headings", yscrollcommand=lambda y: scrollbar.set(y))
+    # Add vertical scrollbar
+    scrollbar = ttk.Scrollbar(frame, orient="vertical")
+    scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+    tree = ttk.Treeview(frame, columns=columns, show="headings", yscrollcommand=scrollbar.set)
     for col in columns:
         tree.heading(col, text=col)
         tree.column(col, width=100, anchor=tk.W)
     tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-    # Add vertical scrollbar
-    scrollbar = ttk.Scrollbar(frame, orient="vertical", command=tree.yview)
-    scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-
+    scrollbar.config(command=tree.yview)
     # Pass 'tree' to the command
     btn = tk.Button(root, text="Calculate", command=lambda: on_calculate(tree))
     btn.pack(pady=10)
