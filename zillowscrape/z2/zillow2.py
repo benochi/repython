@@ -7,8 +7,8 @@ from time import sleep
 ZILLOW_BASE_URL = "https://www.zillow.com/"
 
 def scrape_zillow(city, state, page_number=1):
-    city = city.strip().lower()
-    state = state.strip().lower()
+    city = city.strip().lower()  or "clarksville"
+    state = state.strip().lower() or "tn"
     driver = webdriver.Chrome()
 
     current_url = f"{ZILLOW_BASE_URL}{city}-{state}/" if page_number == 1 else f"{ZILLOW_BASE_URL}{city}-{state}/{page_number}_p/"
