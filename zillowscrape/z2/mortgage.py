@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinter import scrolledtext
 
 def calculate_mortgage():
     try:
@@ -28,9 +29,42 @@ def calculate_mortgage():
     except ValueError:
         mortgage_result.config(text="Please enter valid numbers")
 
+def calculate_amortization():
+    try:
+        P = float(loan_var.get()) if loan_var.get() else 0
+        annual_rate = float(rate_var.get()) if rate_var.get() else 0
+        years = float(years_var.get()) if years_var.get() else 0
+        r = (annual_rate / 100) / 12 if annual_rate else 0
+        n = years * 12 if years else 0
+        M = P * (r * (1 + r)**n) / ((1 + r)**n - 1) if r and n else 0
+        extra_payment = float(extra_payment_var.get()) if extra_payment_var.get() else 0
+        
+        remaining_balance = P
+        amort_output.delete(1.0, tk.END)  # Clear previous output
+        
+        for month in range(1, int(n) + 1):
+            interest_payment = remaining_balance * r
+            principal_payment = M - interest_payment
+            total_payment = M + extra_payment
+            
+            remaining_balance -= (principal_payment + extra_payment)
+            if remaining_balance < 0:
+                remaining_balance = 0
+                
+            amort_output.insert(tk.END, f"Month {month}: Total Payment = ${total_payment:.2f}, Remaining Balance = ${remaining_balance:.2f}\n")
+            
+            if remaining_balance <= 0:
+                break
+        
+    except ValueError:
+        amort_output.insert(tk.END, "Please enter valid numbers")
+
 root = tk.Tk()
-root.geometry("800x600")  # Setting the window size
+root.geometry("800x600")
 root.title("Mortgage Calculator")
+
+frame = ttk.Frame(root, padding="10")
+frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER)  # Center the frame
 
 loan_var = tk.StringVar()
 rate_var = tk.StringVar()
@@ -38,9 +72,7 @@ years_var = tk.StringVar()
 insurance_var = tk.StringVar()
 pmi_var = tk.StringVar()
 taxes_var = tk.StringVar()
-
-frame = ttk.Frame(root, padding="10")
-frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+extra_payment_var = tk.StringVar()
 
 ttk.Label(frame, text="Loan Amount:").grid(row=0, column=0)
 ttk.Entry(frame, textvariable=loan_var).grid(row=0, column=1)
@@ -70,5 +102,13 @@ total_monthly_result.grid(row=8, columnspan=2)
 
 total_annual_result = ttk.Label(frame, text="Total Annual Payment: ")
 total_annual_result.grid(row=9, columnspan=2)
+
+ttk.Label(frame, text="Extra Monthly Principal:").grid(row=10, column=0)
+ttk.Entry(frame, textvariable=extra_payment_var).grid(row=10, column=1)
+
+ttk.Button(frame, text="Calculate Amortization", command=calculate_amortization).grid(row=11, columnspan=2)
+
+amort_output = scrolledtext.ScrolledText(frame, width=70, height=20)
+amort_output.grid(row=12, columnspan=2)
 
 root.mainloop()
