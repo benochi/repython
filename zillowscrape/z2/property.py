@@ -5,7 +5,7 @@ import csv
 
 def calculate_ratio():
     try:
-        with open("sanitized.json", "r") as file:
+        with open("sanitized2.json", "r") as file:
             data = json.load(file)
             listings = data.get('listings', [])
 

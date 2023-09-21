@@ -77,7 +77,7 @@ def sanitize_json_data(input_data):
 
 
 def save_sanitized_data_to_json(json_data):
-    sanitized_filename = "sanitized.json"
+    sanitized_filename = "sanitized2.json"
     try:
         # Check if the file exists and has content
         with open(sanitized_filename, 'r', encoding="utf-8") as f:
@@ -118,7 +118,7 @@ def main():
     def on_scrape():
         try:
             scrape_zillow(city_input.get(), state_input.get(), int(page_input.get()))
-            messagebox.showinfo("Info", "Data scraped and sanitized data saved to 'sanitized.json'")
+            messagebox.showinfo("Info", "Data scraped and sanitized data saved to 'sanitized2.json'")
         except Exception as e:
             messagebox.showerror("Error", str(e))
 
