@@ -3,13 +3,15 @@ from tkinter import ttk, messagebox
 import json
 import csv
 
+calculated_data = []
+
 def calculate_ratio():
+    global calculated_data
     try:
         with open("sanitized2.json", "r") as file:
             data = json.load(file)
             listings = data.get('listings', [])
 
-            # Use a set to filter out duplicates
             unique_entries = set()
             unique_listings = []
 
@@ -25,6 +27,8 @@ def calculate_ratio():
                 rent = listing['rentZestimate']
                 yearly_rent = rent * 12
                 ratio = price / yearly_rent if yearly_rent else 0
+                monthly_rent_per_sqft = round(rent / listing['livingArea'], 2) if listing['livingArea'] else 0.00
+                yearly_rent_per_sqft = round(yearly_rent / listing['livingArea'], 2) if listing['livingArea'] else 0.00
 
                 entry = {
                     'Street Address': listing['streetAddress'],
@@ -40,13 +44,13 @@ def calculate_ratio():
                     'Home Type': listing['homeType'],
                     'Home Status': listing['homeStatus'],
                     'Days On Zillow': listing['daysOnZillow'],
-                    
+                    'Monthly Rent Per SqFt': monthly_rent_per_sqft,
+                    'Yearly Rent Per SqFt': yearly_rent_per_sqft,
                 }
                 calculated_data.append(entry)
 
             calculated_data = sorted(calculated_data, key=lambda x: x["Payback Ratio (in years)"])
 
-            # Write to CSV
             with open("output.csv", "w", newline='') as csv_file:
                 writer = csv.DictWriter(csv_file, fieldnames=calculated_data[0].keys())
                 writer.writeheader()
@@ -66,6 +70,7 @@ def display_csv_in_tree(tree, data):
         tree.insert('', 'end', values=tuple(row[col] for col in columns))
 
 def on_calculate(tree):
+    global calculated_data
     data = calculate_ratio()
     if isinstance(data, str) and "Error" in data:
         messagebox.showerror("Error", data)
@@ -73,35 +78,66 @@ def on_calculate(tree):
         display_csv_in_tree(tree, data)
         messagebox.showinfo("Info", "Data calculated and displayed below.")
 
-def main():
-    global columns  # Making columns global for easy access in other functions
+# Sorting function
+def sort_column(tree, col, reverse):
+    l = [(tree.set(k, col), k) for k in tree.get_children('')]
+    l.sort(reverse=reverse)
+    for index, (val, k) in enumerate(l):
+        tree.move(k, '', index)
+    tree.heading(col, command=lambda: sort_column(tree, col, not reverse))
 
+def on_search(tree, search_term):
+    global calculated_data
+    print(calculated_data)
+    filtered_data = []
+    for entry in calculated_data:
+        if search_term.lower() in entry['Street Address'].lower():
+            print(f"Match found: {entry['Street Address']}")  # Debugging print
+            filtered_data.append(entry)
+    print(f"Searching for: {search_term}, Found: {len(filtered_data)} entries")  # Debugging print
+    display_csv_in_tree(tree, filtered_data)
+
+def main():
+    global columns
     root = tk.Tk()
-    root.geometry("1500x800")  # Making the window larger
+    root.geometry("1500x800")
     root.title("Calculate Rent-to-Cost Ratio")
 
     label = tk.Label(root, text="Click the button to calculate the rent-to-cost ratio.")
     label.pack(pady=10)
 
-    columns = ["Street Address", "Zipcode", "City", "State", "Price","Yearly Rent", "Payback Ratio (in years)", "Bedrooms", "Bathrooms", "Living Area", 
-               "Home Type", "Home Status", "Days On Zillow", ]
+    columns = ["Street Address", "Zipcode", "City", "State", "Price", "Yearly Rent", "Payback Ratio (in years)",
+               "Bedrooms", "Bathrooms", "Living Area", "Monthly Rent Per SqFt", "Yearly Rent Per SqFt",
+               "Home Type", "Home Status", "Days On Zillow"]
 
-    # Frame to hold the tree and scrollbar
     frame = ttk.Frame(root)
     frame.pack(pady=20, padx=20, fill=tk.BOTH, expand=True)
 
-    # Add vertical scrollbar
     scrollbar = ttk.Scrollbar(frame, orient="vertical")
     scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
     tree = ttk.Treeview(frame, columns=columns, show="headings", yscrollcommand=scrollbar.set)
+
+    # Updated column loop to include sorting binding
     for col in columns:
-        tree.heading(col, text=col)
+        tree.heading(col, text=col, command=lambda _col=col: sort_column(tree, _col, False))
         tree.column(col, width=100, anchor=tk.W)
+
     tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
     scrollbar.config(command=tree.yview)
-    # Pass 'tree' to the command
+
+    # Search bar and button
+    search_label = tk.Label(root, text="Search Address:")
+    search_label.pack(pady=10)
+    
+    search_entry = tk.Entry(root, width=50)
+    search_entry.pack(pady=10)
+
+    # Modify the search button to use the calculated_data
+    search_btn = tk.Button(root, text="Search", command=lambda: on_search(tree, search_entry.get()))
+    search_btn.pack(pady=10)
+
     btn = tk.Button(root, text="Calculate", command=lambda: on_calculate(tree))
     btn.pack(pady=10)
 
