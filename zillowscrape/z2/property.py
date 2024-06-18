@@ -115,6 +115,16 @@ def on_search(tree, search_term):
     display_csv_in_tree(tree, filtered_data)
 
 
+def on_item_selected(event, selected_address_text):
+    selected_item = event.widget.selection()[0]
+    item_data = event.widget.item(selected_item)["values"]
+    street_address = item_data[0]  # Assuming "Street Address" is the first column
+    selected_address_text.config(state=tk.NORMAL)  # Enable editing
+    selected_address_text.delete(1.0, tk.END)  # Clear the current content
+    selected_address_text.insert(tk.END, street_address)  # Insert the new address
+    selected_address_text.config(state=tk.DISABLED)
+
+
 def main():
     global columns
     root = tk.Tk()
@@ -160,8 +170,17 @@ def main():
         tree.column(col, width=100, anchor=tk.W)
 
     tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-
     scrollbar.config(command=tree.yview)
+
+    # Label to display the selected street address
+    selected_address_text = tk.Text(root, height=1, width=50)
+    selected_address_text.pack(pady=10)
+
+    # Bind the selection event to the on_item_selected function
+    tree.bind(
+        "<<TreeviewSelect>>",
+        lambda event: on_item_selected(event, selected_address_text),
+    )
 
     # Search bar and button
     search_label = tk.Label(root, text="Search Address:")
