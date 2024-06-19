@@ -1,9 +1,10 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, filedialog
 import json
 import csv
 
 calculated_data = []
+perfect_comps_data = []
 
 
 def load_data(file_name):
@@ -62,6 +63,7 @@ def calculate_price_to_rent_ratio(for_sale, for_rent):
                             "Rent per Sqft": rent_per_sqft,
                             "Zestimate": sale.get("zestimate", "N/A"),
                             "Rent Zestimate": sale.get("rentZestimate", "N/A"),
+                            "Rent Address": rent["streetAddress"],
                         }
                     )
                 except (ValueError, KeyError, TypeError) as e:
@@ -74,14 +76,96 @@ def display_data_in_tree(tree, data):
     for item in tree.get_children():
         tree.delete(item)
 
-    for row in data:
+    for i, row in enumerate(data):
         values = tuple(row[col] for col in columns)
         tree.insert("", "end", values=values)
 
+        # Highlight rows where Beds/Baths (Sale) matches Beds/Baths (Rent)
+        if row["Beds/Baths (Sale)"] == row["Beds/Baths (Rent)"]:
+            if abs(row["Sqft (Sale)"] - row["Area (Rent)"]) <= 100:
+                tree.item(tree.get_children()[-1], tags=("perfect_match",))
+            else:
+                tree.item(tree.get_children()[-1], tags=("match",))
+
+    tree.tag_configure("match", background="yellow")
+    tree.tag_configure(
+        "perfect_match", background="light green", font=("Helvetica", 10, "bold")
+    )
+
+
+def display_perfect_comps():
+    global perfect_comps_data
+    perfect_comps_data = [
+        row
+        for row in calculated_data
+        if row["Beds/Baths (Sale)"] == row["Beds/Baths (Rent)"]
+        and abs(row["Sqft (Sale)"] - row["Area (Rent)"]) <= 100
+    ]
+
+    if not perfect_comps_data:
+        messagebox.showinfo("Info", "No perfect comps found.")
+        return
+
+    def create_popup():
+        popup = tk.Toplevel()
+        popup.title("Perfect Comps")
+        popup.geometry("1600x900")
+
+        frame = ttk.Frame(popup)
+        frame.pack(pady=20, padx=20, fill=tk.BOTH, expand=True)
+
+        scrollbar = ttk.Scrollbar(frame, orient="vertical")
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        tree = ttk.Treeview(
+            frame, columns=columns, show="headings", yscrollcommand=scrollbar.set
+        )
+
+        for col in columns:
+            tree.heading(col, text=col)
+            tree.column(col, width=100, anchor=tk.W)
+
+        tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.config(command=tree.yview)
+
+        display_data_in_tree(tree, perfect_comps_data)
+
+    create_popup()
+
+
+def save_perfect_comps_csv():
+    if not perfect_comps_data:
+        messagebox.showerror("Error", "No perfect comps to export.")
+        return
+
+    try:
+        with open("perfect_comps.csv", "w", newline="") as csv_file:
+            writer = csv.DictWriter(csv_file, fieldnames=columns)
+            writer.writeheader()
+            for row in perfect_comps_data:
+                writer.writerow(row)
+        messagebox.showinfo("Success", "Data exported to perfect_comps.csv")
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to export data: {e}")
+
 
 def on_load_data(tree):
-    for_sale = load_data("sanitized2.json")
-    for_rent = load_data("rentals.json")
+    sale_file = filedialog.askopenfilename(
+        title="Select For Sale JSON File", filetypes=[("JSON files", "*.json")]
+    )
+    rent_file = filedialog.askopenfilename(
+        title="Select Rental JSON File", filetypes=[("JSON files", "*.json")]
+    )
+
+    if not sale_file or not rent_file:
+        messagebox.showerror(
+            "Error", "Please select both For Sale and Rental JSON files."
+        )
+        return
+
+    for_sale = load_data(sale_file)
+    for_rent = load_data(rent_file)
+
     if not for_sale:
         messagebox.showerror("Error", "Failed to load for sale data.")
         return
@@ -140,7 +224,7 @@ def on_item_selected(event, selected_address_text):
 def main():
     global columns
     root = tk.Tk()
-    root.geometry("1500x800")
+    root.geometry("1600x900")
     root.title("Investment Opportunities Viewer")
 
     label = tk.Label(root, text="Click the button to load the data.")
@@ -161,6 +245,7 @@ def main():
         "Rent per Sqft",
         "Zestimate",
         "Rent Zestimate",
+        "Rent Address",
     ]
 
     frame = ttk.Frame(root)
@@ -206,6 +291,16 @@ def main():
 
     export_btn = tk.Button(root, text="Export to CSV", command=export_to_csv)
     export_btn.pack(pady=10)
+
+    view_comps_btn = tk.Button(
+        root, text="View Perfect Comps", command=display_perfect_comps
+    )
+    view_comps_btn.pack(pady=10)
+
+    save_comps_btn = tk.Button(
+        root, text="Save Perfect Comps CSV", command=save_perfect_comps_csv
+    )
+    save_comps_btn.pack(pady=10)
 
     root.mainloop()
 
