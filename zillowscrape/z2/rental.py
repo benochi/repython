@@ -22,6 +22,21 @@ def load_rentals_data():
                     unique_entries.add(identifier)
                     unique_listings.append(listing)
 
+            # Calculate price per square foot and add it to each listing
+            for listing in unique_listings:
+                try:
+                    price_value = float(
+                        listing["price"]
+                        .replace("$", "")
+                        .replace(",", "")
+                        .replace("/mo", "")
+                        .strip()
+                    )
+                    area_value = float(listing["area"])
+                    listing["price_per_sqft"] = round(price_value / area_value, 2)
+                except (ValueError, KeyError):
+                    listing["price_per_sqft"] = "N/A"
+
             calculated_data = unique_listings
 
             with open("rentals_output.csv", "w", newline="") as csv_file:
@@ -82,6 +97,41 @@ def on_item_selected(event, selected_address_text):
     selected_address_text.config(state=tk.DISABLED)
 
 
+def calculate_average_rent_by_zipcode():
+    zipcode_rent = {}
+    zipcode_count = {}
+
+    for entry in calculated_data:
+        zipcode = entry["zipcode"]
+        price = entry["price"]
+        try:
+            price_value = float(
+                price.replace("$", "").replace(",", "").replace("/mo", "").strip()
+            )
+            if zipcode not in zipcode_rent:
+                zipcode_rent[zipcode] = 0
+                zipcode_count[zipcode] = 0
+            zipcode_rent[zipcode] += price_value
+            zipcode_count[zipcode] += 1
+        except ValueError:
+            continue
+
+    avg_rent_by_zipcode = {
+        zipcode: round(zipcode_rent[zipcode] / zipcode_count[zipcode], 2)
+        for zipcode in zipcode_rent
+    }
+    return avg_rent_by_zipcode
+
+
+def display_average_rent_by_zipcode(tree):
+    avg_rent_by_zipcode = calculate_average_rent_by_zipcode()
+    for item in tree.get_children():
+        tree.delete(item)
+
+    for zipcode, avg_rent in avg_rent_by_zipcode.items():
+        tree.insert("", "end", values=(zipcode, avg_rent))
+
+
 def main():
     global columns
     root = tk.Tk()
@@ -92,18 +142,18 @@ def main():
     label.pack(pady=10)
 
     columns = [
-        "Street Address",
-        "Zipcode",
-        "City",
-        "State",
-        "Price",
-        "Bedrooms",
-        "Bathrooms",
-        "Living Area",
-        "Home Type",
-        "Home Status",
-        "Days On Zillow",
-        "Rent Zestimate",
+        "streetAddress",
+        "zipcode",
+        "city",
+        "state",
+        "price",
+        "beds",
+        "baths",
+        "area",
+        "availabilityCount",
+        "latitude",
+        "longitude",
+        "price_per_sqft",
     ]
 
     frame = ttk.Frame(root)
@@ -151,6 +201,13 @@ def main():
 
     load_btn = tk.Button(root, text="Load Data", command=lambda: on_load_data(tree))
     load_btn.pack(pady=10)
+
+    avg_rent_btn = tk.Button(
+        root,
+        text="Show Average Rent by Zipcode",
+        command=lambda: display_average_rent_by_zipcode(tree),
+    )
+    avg_rent_btn.pack(pady=10)
 
     root.mainloop()
 

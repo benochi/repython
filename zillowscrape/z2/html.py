@@ -13,7 +13,7 @@ def scrape_zillow_html(city="tampa", state="fl"):
     state = state.strip().lower()
 
     # Construct the URL
-    current_url = f"{ZILLOW_BASE_URL}{city}-{state}/rentals/"
+    current_url = f"{ZILLOW_BASE_URL}{city}-{state}/rent-houses/"
     payload = {"api_key": api_key, "url": current_url}
 
     try:

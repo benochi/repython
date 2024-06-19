@@ -22,9 +22,9 @@ def scrape_zillow_rentals(city, state, num_pages=10):
     for page_number in range(1, num_pages + 1):
         # Construct the URL
         current_url = (
-            f"{ZILLOW_BASE_URL}{city}-{state}/rentals/"
+            f"{ZILLOW_BASE_URL}{city}-{state}/rent-houses/"
             if page_number == 1
-            else f"{ZILLOW_BASE_URL}{city}-{state}/rentals/{page_number}_p/"
+            else f"{ZILLOW_BASE_URL}{city}-{state}/rent-houses/{page_number}_p/"
         )
         payload = {"api_key": api_key, "url": current_url}
 
@@ -39,8 +39,7 @@ def scrape_zillow_rentals(city, state, num_pages=10):
                 content = response.text
 
                 # Extract and sanitize the data
-                txt_output = extract_search_results_from_html_content(content)
-                json_output = convert_txt_to_json_content(txt_output)
+                json_output = extract_search_results_from_html_content(content)
                 sanitized_json_output = sanitize_json_data(json_output)
                 listings.extend(sanitized_json_output["listings"])
             else:
@@ -57,39 +56,29 @@ def scrape_zillow_rentals(city, state, num_pages=10):
 
 def extract_search_results_from_html_content(content):
     start_index = content.find('"searchResults":')
-    end_index = content.find('"totalResultCount"') + len('"totalResultCount"')
-    extracted_data = "{" + content[start_index:end_index] + ":1}}"
-    return extracted_data
+    end_index = content.find(',"totalResultCount"')
+    extracted_data = content[start_index:end_index] + "}"
+    return json.loads("{" + extracted_data + "}")
 
 
-def convert_txt_to_json_content(txt_content):
-    return json.loads(txt_content)
-
-
-def sanitize_json_data(input_data):
-    if isinstance(input_data, str):
-        json_data = json.loads(input_data)
-    else:
-        json_data = input_data
-
+def sanitize_json_data(json_data):
     sanitized_list = []
     try:
         for listing in json_data["searchResults"]["listResults"]:
-            if "latLong" in listing and "units" in listing:
-                for unit in listing["units"]:
-                    sanitized_info = {
-                        "streetAddress": listing.get("addressStreet", "N/A"),
-                        "zipcode": listing.get("addressZipcode", "N/A"),
-                        "city": listing.get("addressCity", "N/A"),
-                        "state": listing.get("addressState", "N/A"),
-                        "latitude": listing["latLong"]["latitude"],
-                        "longitude": listing["latLong"]["longitude"],
-                        "price": unit.get("price", "N/A"),
-                        "beds": unit.get("beds", "N/A"),
-                        "baths": unit.get("baths", "N/A"),
-                        "availabilityCount": listing.get("availabilityCount", "N/A"),
-                    }
-                    sanitized_list.append(sanitized_info)
+            sanitized_info = {
+                "streetAddress": listing.get("addressStreet", "N/A"),
+                "zipcode": listing.get("addressZipcode", "N/A"),
+                "city": listing.get("addressCity", "N/A"),
+                "state": listing.get("addressState", "N/A"),
+                "latitude": listing.get("latLong", {}).get("latitude", "N/A"),
+                "longitude": listing.get("latLong", {}).get("longitude", "N/A"),
+                "price": listing.get("price", "N/A"),
+                "beds": listing.get("beds", "N/A"),
+                "baths": listing.get("baths", "N/A"),
+                "area": listing.get("area", "N/A"),
+                "availabilityCount": listing.get("availabilityCount", "N/A"),
+            }
+            sanitized_list.append(sanitized_info)
     except Exception as e:
         print(f"Error: {e}")
 
