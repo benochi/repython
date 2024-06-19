@@ -66,7 +66,6 @@ def on_load_data(tree):
         messagebox.showerror("Error", data)
     else:
         display_csv_in_tree(tree, data)
-        messagebox.showinfo("Info", "Data loaded and displayed below.")
 
 
 # Sorting function

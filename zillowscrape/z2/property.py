@@ -89,7 +89,6 @@ def on_calculate(tree):
         messagebox.showerror("Error", data)
     else:
         display_csv_in_tree(tree, data)
-        messagebox.showinfo("Info", "Data calculated and displayed below.")
 
 
 # Sorting function
