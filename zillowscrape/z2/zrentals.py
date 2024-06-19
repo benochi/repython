@@ -75,22 +75,21 @@ def sanitize_json_data(input_data):
     sanitized_list = []
     try:
         for listing in json_data["searchResults"]["listResults"]:
-            home_info = listing["hdpData"]["homeInfo"]
-            sanitized_info = {
-                "streetAddress": home_info.get("streetAddress", "N/A"),
-                "zipcode": home_info.get("zipcode", "N/A"),
-                "city": home_info.get("city", "N/A"),
-                "state": home_info.get("state", "N/A"),
-                "price": home_info.get("price", 0),
-                "bathrooms": home_info.get("bathrooms", 0),
-                "bedrooms": home_info.get("bedrooms", 0),
-                "livingArea": home_info.get("livingArea", 0),
-                "homeType": home_info.get("homeType", "N/A"),
-                "homeStatus": home_info.get("homeStatus", "N/A"),
-                "daysOnZillow": home_info.get("daysOnZillow", "N/A"),
-                "rentZestimate": home_info.get("rentZestimate", 0),
-            }
-            sanitized_list.append(sanitized_info)
+            if "latLong" in listing and "units" in listing:
+                for unit in listing["units"]:
+                    sanitized_info = {
+                        "streetAddress": listing.get("addressStreet", "N/A"),
+                        "zipcode": listing.get("addressZipcode", "N/A"),
+                        "city": listing.get("addressCity", "N/A"),
+                        "state": listing.get("addressState", "N/A"),
+                        "latitude": listing["latLong"]["latitude"],
+                        "longitude": listing["latLong"]["longitude"],
+                        "price": unit.get("price", "N/A"),
+                        "beds": unit.get("beds", "N/A"),
+                        "baths": unit.get("baths", "N/A"),
+                        "availabilityCount": listing.get("availabilityCount", "N/A"),
+                    }
+                    sanitized_list.append(sanitized_info)
     except Exception as e:
         print(f"Error: {e}")
 
