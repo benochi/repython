@@ -3,6 +3,7 @@ import requests
 import json
 import tkinter as tk
 from tkinter import messagebox
+import urllib.parse
 
 # API Key for ScraperAPI
 api_key = "31fecb85a35e9ccb447ede630e4caf32"
@@ -12,18 +13,42 @@ ZILLOW_BASE_URL = "https://www.zillow.com/"
 
 
 # Function to scrape Zillow using ScraperAPI
-def scrape_zillow(city, state, num_pages=10):
+def scrape_zillow(city, state, num_pages=10, price_min=None, price_max=None):
     city = city.strip().lower() or "clarksville"
     state = state.strip().lower() or "tn"
-
     listings = []
 
+    # Encode the searchQueryState with price filtering
+    search_query_state = {
+        "pagination": {},
+        "mapBounds": {},
+        "regionSelection": [{"regionId": 44269, "regionType": 6}],
+        "filterState": {
+            "fr": {"value": True},
+            "fsba": {"value": False},
+            "fsbo": {"value": False},
+            "nc": {"value": False},
+            "cmsn": {"value": False},
+            "auc": {"value": False},
+            "fore": {"value": False},
+            "mf": {"value": False},
+            "land": {"value": False},
+            "manu": {"value": False},
+            "mp": {"min": price_min, "max": price_max},
+        },
+        "isListVisible": True,
+        "mapZoom": 12,
+        "usersSearchTerm": f"{city} {state}",
+    }
+
+    encoded_query = urllib.parse.quote(json.dumps(search_query_state))
+
     for page_number in range(1, num_pages + 1):
-        # Construct the URL to search all rentals
+        # Construct the URL with searchQueryState
         current_url = (
-            f"{ZILLOW_BASE_URL}{city}-{state}/rentals/"
+            f"{ZILLOW_BASE_URL}{city}-{state}/rentals/?searchQueryState={encoded_query}"
             if page_number == 1
-            else f"{ZILLOW_BASE_URL}{city}-{state}/rentals/{page_number}_p/"
+            else f"{ZILLOW_BASE_URL}{city}-{state}/rentals/{page_number}_p/?searchQueryState={encoded_query}"
         )
 
         payload = {"api_key": api_key, "url": current_url}
@@ -127,10 +152,24 @@ def main():
     page_input = tk.Entry(root)
     page_input.pack(pady=10)
 
+    min_price_label = tk.Label(root, text="Enter Minimum Price (optional):")
+    min_price_label.pack(pady=10)
+    min_price_input = tk.Entry(root)
+    min_price_input.pack(pady=10)
+
+    max_price_label = tk.Label(root, text="Enter Maximum Price (optional):")
+    max_price_label.pack(pady=10)
+    max_price_input = tk.Entry(root)
+    max_price_input.pack(pady=10)
+
     def on_scrape():
         try:
             num_pages = int(page_input.get()) if page_input.get() else 10
-            scrape_zillow(city_input.get(), state_input.get(), num_pages)
+            price_min = int(min_price_input.get()) if min_price_input.get() else None
+            price_max = int(max_price_input.get()) if max_price_input.get() else None
+            scrape_zillow(
+                city_input.get(), state_input.get(), num_pages, price_min, price_max
+            )
             messagebox.showinfo(
                 "Info",
                 f"Data scraped and sanitized data saved to '{city_input.get().strip().lower()}_{state_input.get().strip().lower()}_rentals.json'",
