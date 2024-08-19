@@ -27,20 +27,34 @@ def calculate_price_to_rent_ratio(for_sale, for_rent):
                 and sale["state"].lower() == rent["state"].lower()
             ):
                 try:
-                    sale_price = float(sale["price"])
-                    rent_price = float(
-                        rent["price"]
-                        .replace("$", "")
-                        .replace(",", "")
-                        .replace("/mo", "")
-                        .strip()
-                    )
-                    living_area = float(sale.get("livingArea", 0))
-                    rent_area = float(rent.get("area", 0))
-                    if living_area == 0 or rent_area == 0:
-                        raise ValueError(
-                            "Living area is zero, cannot calculate price per sqft."
+                    sale_price = float(sale["price"]) if sale["price"] != "N/A" else 0
+                    rent_price = (
+                        float(
+                            rent["price"]
+                            .replace("$", "")
+                            .replace(",", "")
+                            .replace("/mo", "")
+                            .strip()
                         )
+                        if rent["price"] != "N/A"
+                        else 0
+                    )
+                    living_area = (
+                        float(sale.get("livingArea", 0))
+                        if sale.get("livingArea") != "N/A"
+                        else 0
+                    )
+                    rent_area = (
+                        float(rent.get("area", 0)) if rent.get("area") != "N/A" else 0
+                    )
+
+                    if (
+                        sale_price == 0
+                        or rent_price == 0
+                        or living_area == 0
+                        or rent_area == 0
+                    ):
+                        continue
 
                     price_to_rent_ratio = round(sale_price / (rent_price * 12), 2)
                     price_per_sqft = round(sale_price / living_area, 2)
