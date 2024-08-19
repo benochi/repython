@@ -4,6 +4,7 @@ import json
 import tkinter as tk
 from tkinter import messagebox
 import urllib.parse
+import csv
 
 # API Key for ScraperAPI
 api_key = "31fecb85a35e9ccb447ede630e4caf32"
@@ -76,10 +77,8 @@ def scrape_zillow(city, state, num_pages=10, price_min=None, price_max=None):
         except Exception as e:
             print(f"Error (URL: {current_url}): {e}")
 
-    # Save the combined sanitized data
-    save_sanitized_data_to_json(
-        {"listings": listings, "count": len(listings)}, city, state
-    )
+    # Save the combined sanitized data to a CSV file
+    save_sanitized_data_to_csv(listings, city, state)
 
 
 def extract_search_results_from_html_content(content):
@@ -113,23 +112,18 @@ def sanitize_json_data_rent(json_data):
     return {"listings": sanitized_list, "count": len(sanitized_list)}
 
 
-def save_sanitized_data_to_json(json_data, city, state):
-    sanitized_filename = f"{city}_{state}_rentals.json"
+def save_sanitized_data_to_csv(listings, city, state):
+    csv_filename = f"{city}_{state}_rentals.csv"
+    keys = listings[0].keys() if listings else []
+
     try:
-        # Check if the file exists and has content
-        with open(sanitized_filename, "r", encoding="utf-8") as f:
-            existing_data = json.load(f)
-
-            # Update the listings and the count
-            existing_data["listings"].extend(json_data["listings"])
-            existing_data["count"] = len(existing_data["listings"])
-    except (FileNotFoundError, json.JSONDecodeError):
-        # If the file doesn't exist or is empty, set the existing_data as the new data
-        existing_data = json_data
-
-    # Write back the combined/updated data
-    with open(sanitized_filename, "w", encoding="utf-8") as f:
-        json.dump(existing_data, f, indent=4)
+        with open(csv_filename, "w", newline="", encoding="utf-8") as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=keys)
+            writer.writeheader()
+            writer.writerows(listings)
+        print(f"Data saved to {csv_filename}")
+    except Exception as e:
+        print(f"Error saving data to CSV: {e}")
 
 
 def main():
@@ -172,7 +166,7 @@ def main():
             )
             messagebox.showinfo(
                 "Info",
-                f"Data scraped and sanitized data saved to '{city_input.get().strip().lower()}_{state_input.get().strip().lower()}_rentals.json'",
+                f"Data scraped and saved to '{city_input.get().strip().lower()}_{state_input.get().strip().lower()}_rentals.csv'",
             )
         except Exception as e:
             messagebox.showerror("Error", str(e))
